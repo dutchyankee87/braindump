@@ -1,26 +1,494 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Base */
+  --background: #F9FAFB;
+  --foreground: #111827;
+  --card-bg: #FFFFFF;
+  --card-border: #E5E7EB;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Being - Warm golds/amber */
+  --being-primary: #F59E0B;
+  --being-light: #FEF3C7;
+  --being-glow: rgba(245, 158, 11, 0.3);
+
+  /* Doing - Energetic blues */
+  --doing-primary: #3B82F6;
+  --doing-light: #DBEAFE;
+  --doing-glow: rgba(59, 130, 246, 0.3);
+
+  /* Growing - Organic greens */
+  --growing-primary: #10B981;
+  --growing-light: #D1FAE5;
+  --growing-glow: rgba(16, 185, 129, 0.3);
+
+  /* Capturing - Creative pinks */
+  --capturing-primary: #EC4899;
+  --capturing-light: #FCE7F3;
+  --capturing-glow: rgba(236, 72, 153, 0.3);
+
+  /* Mission - Deep red/orange */
+  --mission-primary: #DC2626;
+  --mission-light: #FEE2E2;
+  --mission-glow: rgba(220, 38, 38, 0.3);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0F172A;
+    --foreground: #F1F5F9;
+    --card-bg: #1E293B;
+    --card-border: #334155;
+
+    /* Dark mode adjustments - slightly muted */
+    --being-light: rgba(245, 158, 11, 0.15);
+    --doing-light: rgba(59, 130, 246, 0.15);
+    --growing-light: rgba(16, 185, 129, 0.15);
+    --capturing-light: rgba(236, 72, 153, 0.15);
+    --mission-light: rgba(220, 38, 38, 0.15);
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  line-height: 1.6;
+  font-feature-settings: "ss01", "ss02";
+}
+
+/* Safe area for mobile devices */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Hide scrollbars but allow scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Kanban board horizontal scroll with momentum */
+.kanban-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Drag overlay styles */
+.drag-overlay {
+  cursor: grabbing !important;
+}
+
+/* ================================
+   ANIMATION UTILITIES
+   ================================ */
+
+/* Breathing animation for Quick Dump */
+@keyframes breathe {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--doing-glow);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px var(--doing-glow);
+    transform: scale(1.005);
+  }
+}
+
+.breathing {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+/* Gentle pulse for borders */
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    border-color: rgba(59, 130, 246, 0.6);
+  }
+}
+
+.drop-zone-active {
+  animation: pulse-border 1s ease-in-out infinite;
+}
+
+/* Glow effects for each category */
+.glow-being {
+  box-shadow: 0 0 20px var(--being-glow);
+}
+
+.glow-doing {
+  box-shadow: 0 0 20px var(--doing-glow);
+}
+
+.glow-growing {
+  box-shadow: 0 0 20px var(--growing-glow);
+}
+
+.glow-capturing {
+  box-shadow: 0 0 20px var(--capturing-glow);
+}
+
+.glow-mission {
+  box-shadow: 0 0 20px var(--mission-glow);
+}
+
+/* Scale on tap/click */
+.scale-tap {
+  transition: transform 0.1s ease;
+}
+
+.scale-tap:active {
+  transform: scale(0.97);
+}
+
+/* Spark animation for new ideas */
+@keyframes spark {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.spark-in {
+  animation: spark 0.4s ease-out;
+}
+
+/* Slide up entrance */
+@keyframes slide-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Fade in */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* ================================
+   GLASS MORPHISM
+   ================================ */
+
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass {
+    background: rgba(30, 41, 59, 0.8);
+  }
+}
+
+/* ================================
+   GRADIENT BACKGROUNDS
+   ================================ */
+
+.bg-being-gradient {
+  background: linear-gradient(135deg, var(--being-light) 0%, rgba(251, 191, 36, 0.2) 100%);
+}
+
+.bg-doing-gradient {
+  background: linear-gradient(135deg, var(--doing-light) 0%, rgba(96, 165, 250, 0.2) 100%);
+}
+
+.bg-growing-gradient {
+  background: linear-gradient(135deg, var(--growing-light) 0%, rgba(52, 211, 153, 0.2) 100%);
+}
+
+.bg-capturing-gradient {
+  background: linear-gradient(135deg, var(--capturing-light) 0%, rgba(244, 114, 182, 0.2) 100%);
+}
+
+.bg-mission-gradient {
+  background: linear-gradient(135deg, var(--mission-light) 0%, rgba(248, 113, 113, 0.2) 100%);
+}
+
+/* ================================
+   RADIAL PROGRESS RING
+   ================================ */
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+  transition: stroke-dashoffset 0.5s ease;
+  transform-origin: 50% 50%;
+}
+
+/* ================================
+   MEDITATION BREATHING CIRCLE
+   ================================ */
+
+@keyframes meditation-breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+}
+
+.meditation-circle {
+  animation: meditation-breathe 8s ease-in-out infinite;
+}
+
+/* ================================
+   MOBILE SWIPE HINT
+   ================================ */
+
+@media (max-width: 768px) {
+  .kanban-scroll::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    background: linear-gradient(to right, transparent, var(--background));
+    pointer-events: none;
+  }
+}
+
+/* ================================
+   TAB NAVIGATION GRADIENT FLOW
+   ================================ */
+
+.tab-gradient-bar {
+  background: linear-gradient(
+    90deg,
+    var(--being-primary) 0%,
+    var(--doing-primary) 33%,
+    var(--growing-primary) 66%,
+    var(--capturing-primary) 100%
+  );
+  height: 3px;
+  border-radius: 9999px;
+}
+
+/* Active tab indicator */
+.tab-active-indicator {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  border-radius: 9999px;
+  transition: background-color 0.3s ease;
+}
+
+/* ================================
+   EMPTY STATE STYLING
+   ================================ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+}
+
+.empty-state-title {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--foreground);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state-description {
+  font-size: 0.875rem;
+  color: #6B7280;
+  margin-bottom: 1.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .empty-state-description {
+    color: #9CA3AF;
+  }
+}
+
+/* ================================
+   CARD STYLES
+   ================================ */
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  .card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* ================================
+   BODY SILHOUETTE (Wellbeing)
+   ================================ */
+
+.body-region {
+  cursor: pointer;
+  transition: fill 0.2s ease, transform 0.2s ease;
+}
+
+.body-region:hover {
+  transform: scale(1.05);
+}
+
+.body-region-head:hover {
+  fill: var(--doing-primary);
+}
+
+.body-region-heart:hover {
+  fill: var(--capturing-primary);
+}
+
+.body-region-body:hover {
+  fill: var(--growing-primary);
+}
+
+/* ================================
+   JOURNAL MOOD PICKER
+   ================================ */
+
+.mood-emoji {
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  padding: 0.5rem;
+  border-radius: 9999px;
+}
+
+.mood-emoji:hover {
+  transform: scale(1.2);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  .mood-emoji:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.mood-emoji.selected {
+  transform: scale(1.2);
+  background: var(--doing-light);
+}
+
+/* ================================
+   PODIUM (Values)
+   ================================ */
+
+.podium-item {
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.podium-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.podium-1 .podium-badge {
+  background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%);
+  color: #78350F;
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 1rem;
+}
+
+.podium-2 .podium-badge {
+  background: linear-gradient(135deg, #E5E7EB 0%, #9CA3AF 100%);
+  color: #374151;
+}
+
+.podium-3 .podium-badge {
+  background: linear-gradient(135deg, #FED7AA 0%, #EA580C 100%);
+  color: #7C2D12;
+}
+
+/* ================================
+   FOCUS MODE (Tasks)
+   ================================ */
+
+.focus-mode-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 40;
+}
+
+.focus-mode-card {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+  width: 90%;
+  max-width: 500px;
 }
