@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { UserButton } from '@clerk/nextjs';
 import type { ExtractedItem } from '@/types';
 
 interface MissionBarProps {
@@ -63,7 +64,7 @@ export default function MissionBar({ mission, onSave, onRefresh }: MissionBarPro
             </button>
 
             {/* Actions */}
-            <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={onRefresh}
@@ -75,6 +76,13 @@ export default function MissionBar({ mission, onSave, onRefresh }: MissionBarPro
                     d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
                 </svg>
               </motion.button>
+              <UserButton
+                appearance={{
+                  elements: {
+                    avatarBox: 'w-7 h-7',
+                  },
+                }}
+              />
             </div>
           </div>
         </div>

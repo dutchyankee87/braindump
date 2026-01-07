@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { dumps, extractedItems } from '@/lib/db/schema';
 import { categorizeContent, analyzeImage } from '@/lib/claude';
-import { desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
+import { getAuthenticatedUser } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await getAuthenticatedUser();
     const { content, imageUrl } = await request.json();
 
     if (!content && !imageUrl) {
@@ -24,6 +26,7 @@ export async function POST(request: NextRequest) {
     const [dump] = await db
       .insert(dumps)
       .values({
+        userId,
         content: content || '',
         imageUrl,
         imageAnalysis,
@@ -64,9 +67,12 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
+    const { userId } = await getAuthenticatedUser();
+
     const allDumps = await db
       .select()
       .from(dumps)
+      .where(eq(dumps.userId, userId))
       .orderBy(desc(dumps.createdAt));
 
     return NextResponse.json({ success: true, data: allDumps });

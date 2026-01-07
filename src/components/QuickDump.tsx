@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useUser } from '@clerk/nextjs';
 import { uploadImage } from '@/lib/supabase';
 import { saveOfflineDump, isOnline } from '@/lib/offline';
 
@@ -19,6 +20,7 @@ const PROMPTS = [
 ];
 
 export default function QuickDump({ onDumpComplete }: QuickDumpProps) {
+  const { user } = useUser();
   const [content, setContent] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -99,7 +101,7 @@ export default function QuickDump({ onDumpComplete }: QuickDumpProps) {
 
     try {
       if (!online) {
-        await saveOfflineDump(content.trim(), imagePreview || undefined);
+        await saveOfflineDump(content.trim(), imagePreview || undefined, user?.id);
         resetForm();
         onDumpComplete();
         return;
@@ -107,8 +109,8 @@ export default function QuickDump({ onDumpComplete }: QuickDumpProps) {
 
       let imageUrl: string | null = null;
 
-      if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
+      if (imageFile && user?.id) {
+        imageUrl = await uploadImage(imageFile, user.id);
         if (!imageUrl) {
           throw new Error('Failed to upload image');
         }
@@ -129,7 +131,7 @@ export default function QuickDump({ onDumpComplete }: QuickDumpProps) {
       onDumpComplete();
     } catch (err) {
       if (!online) {
-        await saveOfflineDump(content.trim(), imagePreview || undefined);
+        await saveOfflineDump(content.trim(), imagePreview || undefined, user?.id);
         resetForm();
         onDumpComplete();
       } else {

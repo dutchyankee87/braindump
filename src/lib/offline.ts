@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface OfflineDump {
   id: string;
+  userId?: string;
   content: string;
   imageData?: string;
   createdAt: Date;
@@ -25,11 +26,13 @@ function getDB() {
 
 export async function saveOfflineDump(
   content: string,
-  imageData?: string
+  imageData?: string,
+  userId?: string
 ): Promise<OfflineDump> {
   const db = await getDB();
   const dump: OfflineDump = {
     id: uuidv4(),
+    userId,
     content,
     imageData,
     createdAt: new Date(),

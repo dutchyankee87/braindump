@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { extractedItems, dumps } from '@/lib/db/schema';
-import { desc, eq, and } from 'drizzle-orm';
+import { desc, eq, and, inArray } from 'drizzle-orm';
 import type { CategoryType, ItemStatus, ItemMetadata } from '@/types';
 import { CATEGORY_MIGRATION_MAP } from '@/types';
+import { getAuthenticatedUser } from '@/lib/auth';
 
 // Map legacy statuses to new Kanban statuses
 function normalizeStatus(status: string): ItemStatus {
@@ -24,13 +25,24 @@ function normalizeCategory(category: string): CategoryType {
 
 export async function GET(request: NextRequest) {
   try {
+    const { userId } = await getAuthenticatedUser();
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category') as CategoryType | null;
     const status = searchParams.get('status') as ItemStatus | null;
 
-    let query = db.select().from(extractedItems);
+    // Get user's dump IDs first
+    const userDumps = await db
+      .select({ id: dumps.id })
+      .from(dumps)
+      .where(eq(dumps.userId, userId));
 
-    const conditions = [];
+    const userDumpIds = userDumps.map(d => d.id);
+
+    if (userDumpIds.length === 0) {
+      return NextResponse.json({ success: true, data: [] });
+    }
+
+    const conditions = [inArray(extractedItems.dumpId, userDumpIds)];
     if (category) {
       conditions.push(eq(extractedItems.category, category));
     }
@@ -38,9 +50,11 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(extractedItems.status, status));
     }
 
-    const items = conditions.length > 0
-      ? await query.where(and(...conditions)).orderBy(desc(extractedItems.createdAt))
-      : await query.orderBy(desc(extractedItems.createdAt));
+    const items = await db
+      .select()
+      .from(extractedItems)
+      .where(and(...conditions))
+      .orderBy(desc(extractedItems.createdAt));
 
     // Normalize legacy statuses and categories
     const normalizedItems = items.map((item) => ({
@@ -62,6 +76,7 @@ export async function GET(request: NextRequest) {
 // POST - Create a new item directly (without going through dump/AI categorization)
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await getAuthenticatedUser();
     const { content, category, metadata, status = 'inbox', priority } = await request.json();
 
     if (!content || !category) {
@@ -75,6 +90,7 @@ export async function POST(request: NextRequest) {
     const [dump] = await db
       .insert(dumps)
       .values({
+        userId,
         content: `[Direct] ${content.substring(0, 50)}...`,
       })
       .returning();
@@ -104,6 +120,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const { userId } = await getAuthenticatedUser();
     const body = await request.json();
     const { id, status, category, priority, metadata, content } = body;
 
@@ -112,6 +129,27 @@ export async function PATCH(request: NextRequest) {
         { error: 'Item ID is required' },
         { status: 400 }
       );
+    }
+
+    // Verify ownership through dump
+    const item = await db
+      .select({ dumpId: extractedItems.dumpId })
+      .from(extractedItems)
+      .where(eq(extractedItems.id, id))
+      .limit(1);
+
+    if (item.length === 0) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
+    const dump = await db
+      .select({ userId: dumps.userId })
+      .from(dumps)
+      .where(eq(dumps.id, item[0].dumpId))
+      .limit(1);
+
+    if (dump.length === 0 || dump[0].userId !== userId) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
     const updates: {
@@ -137,13 +175,6 @@ export async function PATCH(request: NextRequest) {
       .where(eq(extractedItems.id, id))
       .returning();
 
-    if (!updated) {
-      return NextResponse.json(
-        { error: 'Item not found' },
-        { status: 404 }
-      );
-    }
-
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
     console.error('Error updating item:', error);
@@ -156,6 +187,7 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const { userId } = await getAuthenticatedUser();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -166,17 +198,31 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Verify ownership through dump
+    const item = await db
+      .select({ dumpId: extractedItems.dumpId })
+      .from(extractedItems)
+      .where(eq(extractedItems.id, id))
+      .limit(1);
+
+    if (item.length === 0) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
+    const dump = await db
+      .select({ userId: dumps.userId })
+      .from(dumps)
+      .where(eq(dumps.id, item[0].dumpId))
+      .limit(1);
+
+    if (dump.length === 0 || dump[0].userId !== userId) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
     const [deleted] = await db
       .delete(extractedItems)
       .where(eq(extractedItems.id, id))
       .returning();
-
-    if (!deleted) {
-      return NextResponse.json(
-        { error: 'Item not found' },
-        { status: 404 }
-      );
-    }
 
     return NextResponse.json({ success: true, data: deleted });
   } catch (error) {

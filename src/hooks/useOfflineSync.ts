@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useCallback, useState } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { syncOfflineDumps, getUnsyncedDumps } from '@/lib/offline';
 
 export function useOfflineSync(onSyncComplete?: () => void) {
+  const { isSignedIn } = useUser();
   const [pendingCount, setPendingCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -17,7 +19,7 @@ export function useOfflineSync(onSyncComplete?: () => void) {
   }, []);
 
   const sync = useCallback(async () => {
-    if (isSyncing) return;
+    if (isSyncing || !isSignedIn) return;
 
     setIsSyncing(true);
     try {
@@ -31,7 +33,7 @@ export function useOfflineSync(onSyncComplete?: () => void) {
     } finally {
       setIsSyncing(false);
     }
-  }, [isSyncing, onSyncComplete, checkPending]);
+  }, [isSyncing, isSignedIn, onSyncComplete, checkPending]);
 
   useEffect(() => {
     checkPending();

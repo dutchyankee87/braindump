@@ -16,12 +16,12 @@ function getSupabase(): SupabaseClient {
   return supabaseClient;
 }
 
-export async function uploadImage(file: File): Promise<string | null> {
+export async function uploadImage(file: File, userId: string): Promise<string | null> {
   const supabase = getSupabase();
 
   const fileExt = file.name.split('.').pop();
   const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-  const filePath = `dumps/${fileName}`;
+  const filePath = `dumps/${userId}/${fileName}`;
 
   const { error } = await supabase.storage
     .from('brain-dump-images')

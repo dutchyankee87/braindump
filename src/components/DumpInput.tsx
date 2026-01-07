@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { uploadImage } from '@/lib/supabase';
 import { saveOfflineDump, isOnline } from '@/lib/offline';
 
@@ -9,6 +10,7 @@ interface DumpInputProps {
 }
 
 export default function DumpInput({ onDumpComplete }: DumpInputProps) {
+  const { user } = useUser();
   const [content, setContent] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export default function DumpInput({ onDumpComplete }: DumpInputProps) {
 
     try {
       if (!online) {
-        await saveOfflineDump(content.trim(), imagePreview || undefined);
+        await saveOfflineDump(content.trim(), imagePreview || undefined, user?.id);
         setContent('');
         removeImage();
         onDumpComplete();
@@ -72,8 +74,8 @@ export default function DumpInput({ onDumpComplete }: DumpInputProps) {
 
       let imageUrl: string | null = null;
 
-      if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
+      if (imageFile && user?.id) {
+        imageUrl = await uploadImage(imageFile, user.id);
         if (!imageUrl) {
           throw new Error('Failed to upload image');
         }
@@ -95,7 +97,7 @@ export default function DumpInput({ onDumpComplete }: DumpInputProps) {
       onDumpComplete();
     } catch (err) {
       if (!online) {
-        await saveOfflineDump(content.trim(), imagePreview || undefined);
+        await saveOfflineDump(content.trim(), imagePreview || undefined, user?.id);
         setContent('');
         removeImage();
         onDumpComplete();
